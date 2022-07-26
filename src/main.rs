@@ -1,5 +1,6 @@
-use std::fs::OpenOptions;
+use std::fs::{File, OpenOptions};
 use std::io::{Read, Seek, SeekFrom};
+use std::os::unix::prelude::AsRawFd;
 
 fn main() {
     let app = clap::App::new("sparse-flash")
@@ -92,7 +93,53 @@ fn main() {
             }
         }
     } else if let Some(input_path) = args.value_of("input") {
-        todo!()
+        let mut input = File::open(input_path).unwrap();
+        let length = input.metadata().unwrap().len();
+        let mut sections = Vec::<(u64, u64)>::new();
+        let mut size_on_disk = 0;
+        loop {
+            let pos = input.stream_position().unwrap();
+            let start =
+                nix::unistd::lseek(input.as_raw_fd(), pos as i64, nix::unistd::Whence::SeekData)
+                    .unwrap() as u64;
+            let end = nix::unistd::lseek(
+                input.as_raw_fd(),
+                start as i64,
+                nix::unistd::Whence::SeekHole,
+            )
+            .unwrap() as u64;
+            let section_len = end - start;
+            sections.push((start, section_len));
+            size_on_disk += section_len;
+            if end == length {
+                break;
+            }
+            input.seek(SeekFrom::Start(end)).unwrap();
+        }
+        let progress = if progress {
+            Some(
+                indicatif::ProgressBar::new(size_on_disk).with_style(
+                    indicatif::ProgressStyle::default_bar()
+                        .template("{bytes} {elapsed_precise} [{binary_bytes_per_sec}] [{wide_bar}] {percent}% ETA {eta_precise}")
+                        .progress_chars("=> "),
+                ),
+            )
+        } else {
+            None
+        };
+        for (offset, length) in sections {
+            input.seek(SeekFrom::Start(offset)).unwrap();
+            target.seek(SeekFrom::Start(offset)).unwrap();
+            if let Some(progress) = &progress {
+                std::io::copy(
+                    &mut progress.wrap_read((&mut input).take(length)),
+                    &mut target,
+                )
+                .unwrap();
+            } else {
+                std::io::copy(&mut (&mut input).take(length), &mut target).unwrap();
+            }
+        }
     }
     if progress {
         let progress = indicatif::ProgressBar::new_spinner().with_message("Syncing Data");

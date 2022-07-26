@@ -8,4 +8,5 @@ edition = "2021"
 [dependencies]
 clap = "3.2.15"
 indicatif = "0.16.2"
+nix = "0.24.2"
 tar = "0.4.38"

@@ -7,16 +7,28 @@ fn main() {
         .arg(
             clap::Arg::new("stdin-tar")
                 .long("stdin-tar")
-                .required_unless_present("input"),
+                .required_unless_present("input")
+                .conflicts_with("input")
+                .help("Use a posix-compliant TAR file with a single sparse entry passed to stdin"),
         )
         .arg(
             clap::Arg::new("input")
                 .long("input")
                 .takes_value(true)
-                .required_unless_present("stdin-tar"),
+                .required_unless_present("stdin-tar")
+                .conflicts_with("stdin-tar")
+                .help("A sparse file to use as input"),
         )
-        .arg(clap::Arg::new("destination").required(true))
-        .arg(clap::Arg::new("progress").long("--progress"));
+        .arg(
+            clap::Arg::new("destination")
+                .required(true)
+                .help("The logical name of the block device to write to"),
+        )
+        .arg(
+            clap::Arg::new("progress")
+                .long("--progress")
+                .help("Show a progress bar"),
+        );
     let args = app.get_matches();
     let progress = args.contains_id("progress");
     let mut target = OpenOptions::new()
@@ -40,7 +52,7 @@ fn main() {
                     .unwrap()
                     .into_iter()
                     .flat_map(|e| e.into_iter().map(|e| e.unwrap()))
-                    .any(|e| e.key().unwrap() == "GNU.sparse.major")
+                    .any(|e| e.key().unwrap() == "GNU.sparse.major" && e.value().unwrap() == "1")
                 {
                     panic!("Not a sparse file")
                 }

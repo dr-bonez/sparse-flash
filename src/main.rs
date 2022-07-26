@@ -17,6 +17,7 @@ fn main() {
         .arg(clap::Arg::new("destination").required(true))
         .arg(clap::Arg::new("progress").long("--progress"));
     let args = app.get_matches();
+    let progress = args.contains_id("progress");
     let mut target = OpenOptions::new()
         .write(true)
         .open(args.value_of("destination").unwrap())
@@ -50,11 +51,11 @@ fn main() {
                     size_on_disk += length;
                 }
                 input.read_exact(&mut vec![0; 512 - (ctr % 512)]).unwrap();
-                let progress = if args.contains_id("progress") {
+                let progress = if progress {
                     Some(
                         indicatif::ProgressBar::new(size_on_disk).with_style(
                             indicatif::ProgressStyle::default_bar()
-                                .template("{bytes} {elapsed_precise} [{binary_bytes_per_sec}] [{wide_bar}] {percent} ETA {eta_precise}")
+                                .template("{bytes} {elapsed_precise} [{binary_bytes_per_sec}] [{wide_bar}] {percent}% ETA {eta_precise}")
                                 .progress_chars("=> "),
                         ),
                     )
@@ -80,5 +81,12 @@ fn main() {
         }
     } else if let Some(input_path) = args.value_of("input") {
         todo!()
+    }
+    if progress {
+        let progress = indicatif::ProgressBar::new_spinner().with_message("syncing data");
+        target.sync_all().unwrap();
+        progress.finish();
+    } else {
+        target.sync_all().unwrap();
     }
 }

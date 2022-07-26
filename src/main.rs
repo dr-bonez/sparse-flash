@@ -75,6 +75,9 @@ fn main() {
                     }
                 }
                 start += length;
+                if let Some(progress) = &progress {
+                    progress.finish();
+                }
             } else {
                 break;
             }
@@ -83,7 +86,8 @@ fn main() {
         todo!()
     }
     if progress {
-        let progress = indicatif::ProgressBar::new_spinner().with_message("syncing data");
+        let progress = indicatif::ProgressBar::new_spinner().with_message("Syncing Data");
+        progress.enable_steady_tick(300);
         target.sync_all().unwrap();
         progress.finish();
     } else {

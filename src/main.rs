@@ -51,7 +51,13 @@ fn main() {
                 }
                 input.read_exact(&mut vec![0; 512 - (ctr % 512)]).unwrap();
                 let progress = if args.contains_id("progress") {
-                    Some(indicatif::ProgressBar::new(size_on_disk))
+                    Some(
+                        indicatif::ProgressBar::new(size_on_disk).with_style(
+                            indicatif::ProgressStyle::default_bar()
+                                .template("{bytes} {elapsed_precise} [{binary_bytes_per_sec}] [{wide_bar}] {percent} ETA {eta_precise}")
+                                .progress_chars("=> "),
+                        ),
+                    )
                 } else {
                     None
                 };

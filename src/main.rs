@@ -40,7 +40,9 @@ fn main() {
                     .into_iter()
                     .flat_map(|e| e.into_iter().map(|e| e.unwrap()))
                     .any(|e| e.key().unwrap() == "GNU.sparse.major")
-                {}
+                {
+                    panic!("Not a sparse file")
+                }
                 drop(entry);
                 let mut ctr = 0;
                 let mut line = String::new();

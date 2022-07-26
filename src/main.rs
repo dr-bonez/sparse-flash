@@ -28,12 +28,19 @@ fn main() {
         loop {
             let mut sections = Vec::<(u64, u64)>::new();
             let mut archive = tar::Archive::new(&mut input);
-            if let Some(entry) = archive.entries().unwrap().next().map(|e| e.unwrap()) {
+            if let Some(mut entry) = archive.entries().unwrap().next().map(|e| e.unwrap()) {
                 entry
                     .header()
                     .as_ustar()
                     .expect("must use POSIX compliant TAR");
                 let length = entry.size();
+                if !entry
+                    .pax_extensions()
+                    .unwrap()
+                    .into_iter()
+                    .flat_map(|e| e.into_iter().map(|e| e.unwrap()))
+                    .any(|e| e.key().unwrap() == "GNU.sparse.major")
+                {}
                 drop(entry);
                 let mut ctr = 0;
                 let mut line = String::new();
